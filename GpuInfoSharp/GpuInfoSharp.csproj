@@ -4,9 +4,11 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>10</LangVersion>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="System.Memory" Version="4.5.5"/>
         <PackageReference Include="System.Threading.Channels" Version="6.0.0"/>
     </ItemGroup>
 

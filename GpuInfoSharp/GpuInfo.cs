@@ -29,6 +29,13 @@ public static class GpuInfo {
 		set;
 	} = 100;
 
+	public static int SampleCount {
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		get;
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		set;
+	} = 10;
+
 	public static ReadOnlyCollection<Gpu> GetFoundGpus() {
 		return new(_foundGpus.ToList());
 	}
@@ -86,12 +93,12 @@ public static class GpuInfo {
 			switch (vendor) {
 				case 0x1002: {
 					//Amd GPU vendor seems to always be 0x1002, so we'll use that 
-					HandleAmdGpu(drmDir);
+					HandleLinuxAmdGpu(drmDir);
 					break;
 				}
 				case 0x8086: {
 					//8086 might be used by more things... need to look into this more
-					HandleIntelGpu(drmDir);
+					HandleLinuxIntelGpu(drmDir);
 					break;
 				}
 				default:
@@ -129,14 +136,14 @@ public static class GpuInfo {
 		return linkWidth;
 	}
 
-	private static void HandleAmdGpu(DirectoryInfo drmDir) {
+	private static void HandleLinuxAmdGpu(DirectoryInfo drmDir) {
 		string productNamePath = Path.Combine(drmDir.FullName, "device/product_name");
 		string productName     = File.Exists(productNamePath) ? File.ReadAllText(productNamePath).Trim() : "Unknown Product Name";
 
 		string productNumberPath = Path.Combine(drmDir.FullName, "device/product_number");
 		string productNumber     = File.Exists(productNumberPath) ? File.ReadAllText(productNumberPath).Trim() : "Unknown Product Number";
 
-		_foundGpus.Add(new AmdGpu {
+		_foundGpus.Add(new LinuxAmdGpu(drmDir) {
 			Label        = $"Name: {productName}, Product Number: {productNumber}",
 			LinkSpeed    = GetLinkSpeed(drmDir)    ?? "Unknown Link Speed!",
 			LinkWidth    = GetLinkWidth(drmDir)    ?? "Unknown Link Width!",
@@ -144,13 +151,13 @@ public static class GpuInfo {
 			MaxLinkSpeed = GetMaxLinkSpeed(drmDir) ?? "Unknown Link Speed!"
 		});
 	}
-	private static void HandleIntelGpu(DirectoryInfo drmDir) {
+	private static void HandleLinuxIntelGpu(DirectoryInfo drmDir) {
 		string drmPath   = drmDir.FullName;
 		string labelPath = Path.Combine(drmPath, "device/label");
 
 		string label = File.Exists(labelPath) ? File.ReadAllText(labelPath).Trim() : "Unknown Intel GPU, no `device/label`";
 
-		_foundGpus.Add(new IntelGpu {
+		_foundGpus.Add(new LinuxIntelGpu {
 			Label        = label,
 			LinkSpeed    = GetLinkSpeed(drmDir)    ?? "Unknown Link Speed!",
 			LinkWidth    = GetLinkWidth(drmDir)    ?? "Unknown Link Width!",
@@ -190,7 +197,16 @@ public static class GpuInfo {
 				if (message == ChannelMessage.Stop)
 					break;
 
-			foreach (Gpu gpu in _foundGpus) {}
+			foreach (Gpu gpu in _foundGpus) {
+				if (gpu.SampleInfo.Length >= SampleCount - 1)
+					gpu.SampleInfo.RemoveStart();
+
+				unsafe {
+					GpuInfoSample sample = gpu.CollectSample();
+
+					gpu.SampleInfo.AppendToEnd(sample);
+				}
+			}
 
 			Thread.Sleep(SampleDelay);
 		}
