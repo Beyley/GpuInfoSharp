@@ -21,4 +21,14 @@ public abstract class Gpu {
 		get;
 		internal set;
 	}
+	
+	public string MaxLinkSpeed {
+		get;
+		internal set;
+	}
+
+	public string MaxLinkWidth {
+		get;
+		internal set;
+	}
 }

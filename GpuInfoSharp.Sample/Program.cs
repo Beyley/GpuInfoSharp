@@ -8,7 +8,11 @@ public static class Program {
 
 		ReadOnlyCollection<Gpu> gpus = GpuInfo.GetFoundGpus();
 		foreach (Gpu foundGpu in gpus)
-			Console.WriteLine($"Found GPU: Label:{foundGpu.Label}, Vendor:{foundGpu.Vendor}, Link Speed:{foundGpu.LinkSpeed} Link Width: {foundGpu.LinkWidth}");
+			Console.WriteLine(@$"Found GPU: Label:{foundGpu.Label}, Vendor:{foundGpu.Vendor}
+	Link Speed: {foundGpu.LinkSpeed} 
+	Link Width: {foundGpu.LinkWidth}
+	Max Link Speed: {foundGpu.MaxLinkSpeed}
+	Max Link Width: {foundGpu.MaxLinkWidth}");
 
 		GpuInfo.StopMonitoring();
 	}

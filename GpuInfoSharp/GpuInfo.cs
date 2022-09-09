@@ -115,6 +115,20 @@ public static class GpuInfo {
 		return linkWidth;
 	}
 
+	private static string? GetMaxLinkSpeed(DirectoryInfo drmDir) {
+		string  linkSpeedPath = Path.Combine(drmDir.FullName, "device/max_link_speed");
+		string? linkSpeed     = File.Exists(linkSpeedPath) ? File.ReadAllText(linkSpeedPath).Trim() : null;
+
+		return linkSpeed;
+	}
+
+	private static string? GetMaxLinkWidth(DirectoryInfo drmDir) {
+		string  linkWidthPath = Path.Combine(drmDir.FullName, "device/max_link_width");
+		string? linkWidth     = File.Exists(linkWidthPath) ? File.ReadAllText(linkWidthPath).Trim() : null;
+
+		return linkWidth;
+	}
+
 	private static void HandleAmdGpu(DirectoryInfo drmDir) {
 		string productNamePath = Path.Combine(drmDir.FullName, "device/product_name");
 		string productName     = File.Exists(productNamePath) ? File.ReadAllText(productNamePath).Trim() : "Unknown Product Name";
@@ -123,9 +137,11 @@ public static class GpuInfo {
 		string productNumber     = File.Exists(productNumberPath) ? File.ReadAllText(productNumberPath).Trim() : "Unknown Product Number";
 
 		_foundGpus.Add(new AmdGpu {
-			Label     = $"Name: {productName}, Product Number: {productNumber}",
-			LinkSpeed = GetLinkSpeed(drmDir) ?? "Unknown Link Speed!",
-			LinkWidth = GetLinkWidth(drmDir) ?? "Unknown Link Width!"
+			Label        = $"Name: {productName}, Product Number: {productNumber}",
+			LinkSpeed    = GetLinkSpeed(drmDir)    ?? "Unknown Link Speed!",
+			LinkWidth    = GetLinkWidth(drmDir)    ?? "Unknown Link Width!",
+			MaxLinkWidth = GetMaxLinkWidth(drmDir) ?? "Unknown Link Width!",
+			MaxLinkSpeed = GetMaxLinkSpeed(drmDir) ?? "Unknown Link Speed!"
 		});
 	}
 	private static void HandleIntelGpu(DirectoryInfo drmDir) {
@@ -135,9 +151,11 @@ public static class GpuInfo {
 		string label = File.Exists(labelPath) ? File.ReadAllText(labelPath).Trim() : "Unknown Intel GPU, no `device/label`";
 
 		_foundGpus.Add(new IntelGpu {
-			Label     = label,
-			LinkSpeed = GetLinkSpeed(drmDir) ?? "Unknown Link Speed!",
-			LinkWidth = GetLinkWidth(drmDir) ?? "Unknown Link Width!"
+			Label        = label,
+			LinkSpeed    = GetLinkSpeed(drmDir)    ?? "Unknown Link Speed!",
+			LinkWidth    = GetLinkWidth(drmDir)    ?? "Unknown Link Width!",
+			MaxLinkWidth = GetMaxLinkWidth(drmDir) ?? "Unknown Link Width!",
+			MaxLinkSpeed = GetMaxLinkSpeed(drmDir) ?? "Unknown Link Speed!"
 		});
 	}
 
