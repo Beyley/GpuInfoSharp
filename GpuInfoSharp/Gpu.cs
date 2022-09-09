@@ -1,11 +1,24 @@
-namespace GpuInfoSharp; 
+namespace GpuInfoSharp;
 
 public abstract class Gpu {
 	public readonly GpuVendor Vendor;
-	public readonly string    Label;
-	
-	internal Gpu(GpuVendor vendor, string label) {
+
+	internal Gpu(GpuVendor vendor) {
 		this.Vendor = vendor;
-		this.Label  = label;
+	}
+
+	public string Label {
+		get;
+		internal set;
+	}
+
+	public string LinkSpeed {
+		get;
+		internal set;
+	}
+
+	public string LinkWidth {
+		get;
+		internal set;
 	}
 }

@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -11,7 +10,6 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 
 namespace GpuInfoSharp;
 
@@ -22,7 +20,7 @@ public static class GpuInfo {
 
 	private static ConcurrentBag<Gpu> _foundGpus;
 
-	public static ReadOnlyCollection<Gpu> GetFoundGpus() => new ReadOnlyCollection<Gpu>(_foundGpus.ToList());
+	private static readonly Regex _linuxDrmCardRegex = new("^card[0-9]+$");
 
 	public static int SampleDelay {
 		[MethodImpl(MethodImplOptions.Synchronized)]
@@ -31,12 +29,10 @@ public static class GpuInfo {
 		set;
 	} = 100;
 
-	private enum ChannelMessage {
-		Stop
+	public static ReadOnlyCollection<Gpu> GetFoundGpus() {
+		return new(_foundGpus.ToList());
 	}
 
-	private static Regex _linuxDrmCardRegex = new("^card[0-9]+$");
-	
 	public static void StartMonitoring() {
 		if (_monitoringThread != null)
 			throw new InvalidOperationException();
@@ -47,7 +43,7 @@ public static class GpuInfo {
 		_channel          = Channel.CreateUnbounded<ChannelMessage>();
 		_runningMutex     = new Mutex(true, "GpuInfoRunningMutex");
 		_monitoringThread = new Thread(MonitoringThreadRun);
-		
+
 		_runningMutex.ReleaseMutex();
 
 		_monitoringThread.Start();
@@ -59,28 +55,23 @@ public static class GpuInfo {
 
 			IEnumerable<DirectoryInfo> dirs = info.EnumerateDirectories();
 
-			foreach (DirectoryInfo dirInfo in dirs) {
+			foreach (DirectoryInfo dirInfo in dirs)
 				//Did we find a valid card?
-				if (_linuxDrmCardRegex.IsMatch(dirInfo.Name)) {
+				if (_linuxDrmCardRegex.IsMatch(dirInfo.Name))
 					HandleValidLinuxDrmCard(dirInfo);
-				}
-			}
 		}
-		else {
-			//TODO
-		}
+		//TODO
 	}
-	
+
 	private static void HandleValidLinuxDrmCard(DirectoryInfo drmDir) {
 		DirectoryInfo[] dirs = drmDir.GetDirectories();
 
 		//Try to find the device folder
 		DirectoryInfo? deviceDir = null;
-		foreach (DirectoryInfo dir in dirs) {
+		foreach (DirectoryInfo dir in dirs)
 			if (dir.Name == "device")
 				deviceDir = dir;
-		}
-		
+
 		//If we didnt find a device folder, just ignore this card
 		if (deviceDir == null)
 			return;
@@ -91,7 +82,7 @@ public static class GpuInfo {
 			string vendorString = File.ReadAllText(vendorPath).Trim();
 
 			int vendor = Convert.ToInt32(vendorString, 16);
-			
+
 			switch (vendor) {
 				case 0x1002: {
 					//Amd GPU vendor seems to always be 0x1002, so we'll use that 
@@ -109,19 +100,47 @@ public static class GpuInfo {
 			}
 		}
 	}
-	
+
+	private static string? GetLinkSpeed(DirectoryInfo drmDir) {
+		string  linkSpeedPath = Path.Combine(drmDir.FullName, "device/current_link_speed");
+		string? linkSpeed     = File.Exists(linkSpeedPath) ? File.ReadAllText(linkSpeedPath).Trim() : null;
+
+		return linkSpeed;
+	}
+
+	private static string? GetLinkWidth(DirectoryInfo drmDir) {
+		string  linkWidthPath = Path.Combine(drmDir.FullName, "device/current_link_width");
+		string? linkWidth     = File.Exists(linkWidthPath) ? File.ReadAllText(linkWidthPath).Trim() : null;
+
+		return linkWidth;
+	}
+
 	private static void HandleAmdGpu(DirectoryInfo drmDir) {
-		_foundGpus.Add(new AmdGpu("Unknown"));
+		string productNamePath = Path.Combine(drmDir.FullName, "device/product_name");
+		string productName     = File.Exists(productNamePath) ? File.ReadAllText(productNamePath).Trim() : "Unknown Product Name";
+
+		string productNumberPath = Path.Combine(drmDir.FullName, "device/product_number");
+		string productNumber     = File.Exists(productNumberPath) ? File.ReadAllText(productNumberPath).Trim() : "Unknown Product Number";
+
+		_foundGpus.Add(new AmdGpu {
+			Label     = $"Name: {productName}, Product Number: {productNumber}",
+			LinkSpeed = GetLinkSpeed(drmDir) ?? "Unknown Link Speed!",
+			LinkWidth = GetLinkWidth(drmDir) ?? "Unknown Link Width!"
+		});
 	}
 	private static void HandleIntelGpu(DirectoryInfo drmDir) {
 		string drmPath   = drmDir.FullName;
 		string labelPath = Path.Combine(drmPath, "device/label");
-		
+
 		string label = File.Exists(labelPath) ? File.ReadAllText(labelPath).Trim() : "Unknown Intel GPU, no `device/label`";
-		
-		_foundGpus.Add(new IntelGpu(label));
+
+		_foundGpus.Add(new IntelGpu {
+			Label     = label,
+			LinkSpeed = GetLinkSpeed(drmDir) ?? "Unknown Link Speed!",
+			LinkWidth = GetLinkWidth(drmDir) ?? "Unknown Link Width!"
+		});
 	}
-	
+
 	public static void StopMonitoring() {
 		Debug.Assert(_runningMutex != null, "_runningMutex != null");
 		Debug.Assert(_channel      != null, "_channel != null");
@@ -153,14 +172,16 @@ public static class GpuInfo {
 				if (message == ChannelMessage.Stop)
 					break;
 
-			foreach (Gpu gpu in _foundGpus) {
-				
-			}
+			foreach (Gpu gpu in _foundGpus) {}
 
 			Thread.Sleep(SampleDelay);
 		}
 
 		//Release the mutex
 		_runningMutex.ReleaseMutex();
+	}
+
+	private enum ChannelMessage {
+		Stop
 	}
 }

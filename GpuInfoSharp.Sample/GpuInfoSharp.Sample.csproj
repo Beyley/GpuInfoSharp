@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\GpuInfoSharp\GpuInfoSharp.csproj" />
+        <ProjectReference Include="..\GpuInfoSharp\GpuInfoSharp.csproj"/>
     </ItemGroup>
 
 </Project>

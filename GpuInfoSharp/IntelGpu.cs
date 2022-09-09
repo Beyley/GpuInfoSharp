@@ -1,7 +1,5 @@
-namespace GpuInfoSharp; 
+namespace GpuInfoSharp;
 
 public class IntelGpu : Gpu {
-	public IntelGpu(string label) : base(GpuVendor.Intel, label) {
-		
-	}
+	public IntelGpu() : base(GpuVendor.Intel) {}
 }
