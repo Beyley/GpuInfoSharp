@@ -25,7 +25,7 @@ public static class Program {
 		
 			int i = 0;
 			while (node != null) {
-				Console.WriteLine($"	{i}: vram: {node->Contents.UsedVram / 1024f / 1024f:N4}mb/{node->Contents.TotalVram / 1024f / 1024f:N4}mb");
+				Console.WriteLine($"	{i}: usage: {node->Contents.Utilization:P}, vram: {node->Contents.UsedVram / 1024f / 1024f:N4}mb/{node->Contents.TotalVram / 1024f / 1024f:N4}mb");
 		
 				node = node->NextNode;
 				i++;
