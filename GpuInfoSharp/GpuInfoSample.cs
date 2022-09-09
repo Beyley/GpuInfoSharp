@@ -5,4 +5,6 @@ public struct GpuInfoSample {
 	public ulong UsedVram;
 
 	public float Utilization;
+
+	public short Temperature;
 }
